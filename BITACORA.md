@@ -88,22 +88,112 @@ Al terminar: actualizar estado y siguiente acción; agregar una entrada fechada 
 - Creados `src/profile_kpi_inputs.py` y `docs/diccionario_kpis.md`; README enlaza el comando y el documento.
 - Perfil ejecutado con verificación de hashes/configuración: cinco AGEB con población cero, once sin negocios asignados, símbolos `*` en variables censales y 24 empates de sector dominante.
 - Los estratos DENUE de personal ocupado no son conteos exactos de empleos. PEA usa 12+ como denominador propuesto. Faltantes no se convierten a cero y los grupos de edad no deben superponerse.
-- Siguiente acción: cerrar o descartar seguridad; evaluar comparabilidad temporal y verificar formalmente SCIAN antes de calcular KPIs finales.
+- El diccionario DENUE mayo 2026 menciona SCIAN 2018; la versión efectiva necesita verificación. No etiquetar automáticamente los códigos como SCIAN 2023.
+- No se calcularon KPIs finales ni se modificaron asignaciones. Evidencia: `outputs/merida/phase1/kpi_input_profile.json`.
+- Próximo paso: versión SCIAN y coherencia temporal. Seguridad sigue pendiente de la gestión en sede central y fuentes públicas.
 
-### 2026-09-30 — Cambio de territorio a CDMX y ejecución de Plan B
+### 2026-09-29 — Versión SCIAN confirmada documentalmente
 
-- El usuario indicó que el plazo del proyecto no permite esperar datos de seguridad de Mérida y activó CDMX como territorio operativo.
-- Se descargaron Censo 2020, Marco Geoestadístico 2020, DENUE noviembre 2020 y FGJ 2020 para CDMX y se registraron fuentes/hashes en `docs/cdmx_acquisition.json`.
-- Se ejecutó el evaluador geográfico con `config/cdmx.json`: 2,431 AGEB urbanas válidas; 472,608 registros DENUE asignados; 194,356 FGJ asignados; 9,111 coordenadas inválidas/ausentes; 654 fuera.
-- Se implementaron y ejecutaron auditoría de cobertura, calidad de FGJ y sensibilidad espacial; se registraron reportes JSON/Markdown.
-- Se definió candidate-v1 para seguridad con reglas reproducibles y sin inventar coordenadas.
-- Se mantuvieron Mérida y sus outputs como antecedentes históricos, no como evidencia activa.
+- Metodología específica DENUE 05/2026: SCIAN 2023, sección 4.2 nota 14. Las menciones a 2018 en el diccionario empaquetado son inconsistentes con esa declaración; texto heredado es una hipótesis editorial, no un hecho confirmado.
+- Documento descargado y registrado con hash. Nota: docs/verificacion_scian.md.
+- Detectado Marco Geoestadístico 2024 y advertencias de precisión/periodo de referencia en la metodología; no equivalen a una explicación individual de las 148 discrepancias.
+- Próximo paso: validar catálogo completo y explorar edición histórica. Sin cambios a datos ni asignaciones.
 
-### 2026-10-01 — Fase 2 Data Warehouse PostGIS
+### 2026-09-29 — Catálogo y alternativas históricas
 
-- Se creó el modelo dimensional en `sql/migrations/001_warehouse.sql` y carga reproducible en `sql/etl/load_cdmx.sql`.
-- Se añadieron `src/database.py`, `src/load_warehouse.py`, `src/validate_warehouse.py`, `src/compare_dw_phase1.py` y pruebas de integración.
-- Se levantó PostgreSQL/PostGIS con Docker, se cargó el DW y se verificó idempotencia y paridad con resultados de Fase 1.
-- Se publicaron vistas analíticas en `sql/analytics/001_indicators.sql` y se verificaron los 14 KPIs requeridos.
-- Resultado local: 23 pruebas aprobadas, 18 controles DW y 11 analíticos.
-- Fase 2 considerada implementada y lista para revisión externa.
+- Descargados catálogo SCIAN 2023 oficial (XLSX) y ZIP de URLs DENUE abril/noviembre 2020; procedencia y hashes en docs/historic_scian_acquisition.json.
+- Validadas 815 clases de 2026 contra 1,086 clases oficiales; cero códigos desconocidos. Cuarenta descripciones difieren y afectan 4,251 registros estatales: no todas son diferencias solo tipográficas.
+- Comprobación independiente del XLSX y conciliación de 146,384 registros. Sin edición del catálogo ni de los originales.
+- Noviembre 2020: 130,626 registros estatales y 53,378 asignados al área; 504+104 discrepancias. Metadatos coherentes con noviembre 2020.
+- URL abril 2020: metadatos internos dicen 11_2019; edición marcada pendiente. No se adopta como fuente activa.
+- Los históricos requieren adaptación de codificación; contienen un carácter C1 cada uno. Script de comparación preserva bytes con Latin-1 y reporta esta limitación.
+- Configuración activa conservada en mayo 2026. No interpretar diferencias entre ediciones como crecimiento/aperturas/cierres.
+- Siguiente acción: metodología y clasificación histórica de noviembre 2020; decisión temporal sigue abierta con seguridad pendiente.
+
+### 2026-09-29 — Metodología histórica revisada
+
+- Se descargó e identificó por portada y contenido la metodología DENUE 11/2020, aunque el buscador presenta un título de abril.
+- SCIAN 2018 y Marco Geoestadístico septiembre 2019 confirmados documentalmente.
+- Separar edición de publicación de periodo de referencia. No interpretar los estratos como empleo exacto ni observado en noviembre 2020.
+- Se preserva la alternativa histórica; no se cambió la configuración activa ni se repitieron pruebas espaciales.
+- Evaluación: docs/evaluacion_denue_202011.md. Siguiente acción independiente: justificación de unidad geográfica; seguridad y elección temporal siguen pendientes.
+
+### 2026-09-29 — Decisión geográfica y checkpoint
+
+- Se documentó la selección operativa de 483 AGEB urbanas de la localidad de Mérida, Marco 2020, comparándola con municipio, colonia y manzana.
+- Se explicitó alcance, clave versionada, regla de asignación y límites para seguridad. No hubo nuevas ejecuciones de datos ni cambios de configuración.
+- Se creó matriz de evidencia: la prueba con negocios no reemplaza la de delitos. La Fase 1 no está completa.
+- Documentos: docs/decision_geografica.md y docs/checkpoint_fase1.md; enlazados desde README.
+- Siguiente acción: contrato de entrada de seguridad, sin datos ficticios. Elección temporal pendiente.
+
+### 2026-09-30 — Activación de Plan B y primera integración CDMX
+
+- Usuario confirma que la gestión local no entregaría seguridad a tiempo. Se cambia territorio a CDMX, preservando Mérida como antecedente.
+- Descargadas cuatro fuentes con hashes. FGJ obtenido mediante exportación DataStore oficial por certificado vencido del servidor de archivo; 204,121 filas conciliadas con API.
+- Creada configuración CDMX y adaptador `src/assess_crime_cdmx.py`; originales inalterados.
+- Corregidos sumatorio de niveles censales y ceros iniciales DENUE; codificación histórica explícita. Nueve pruebas aprobadas.
+- Censo: 2,433 AGEB; Marco: 2,431. Dos claves sin geometría y 7,108 habitantes excluidos del diagnóstico espacial, pendientes de revisión.
+- DENUE: 474,328 filas, 472,608 asignadas. FGJ: 204,121 filas, 194,356 asignadas, 9,111 coordenadas inválidas/ausentes y 654 fuera.
+- Contrato, evidencias y límites en `docs/plan_b_cdmx.md`. Fase 1 no cerrada; precisión, elegibilidad, cobertura y perfil KPI CDMX pendientes. No se cargó el DW ni se hicieron commits.
+
+### 2026-09-30 — Auditoría de cobertura y selección candidate-v1
+
+- Censo urbano vs Marco rural comprobado para las dos localidades excluidas; no se asumió equivalencia con polígonos rurales.
+- Cero superposiciones con área positiva. De 654 FGJ fuera de AGEB, 430 están dentro del polígono estatal; DENUE: 1,149 de 1,720.
+- Regla candidate-v1: excluye hechos no delictivos e incompetencias, conserva competencia desconocida con marca. 199,650 candidatos, 191,233 asignados. No son KPIs definitivos.
+- Competencia NA casi generalizada de enero a agosto y ausente de septiembre a diciembre: exigir fuero común conocido sesgaría la cobertura temporal.
+- Script y pruebas añadidos; 10 pruebas aprobadas. Evidencia y contrato en docs/auditoria_cdmx.md y docs/cdmx_coverage_audit.json.
+- Siguiente: perfil KPI CDMX, catálogo SCIAN 2018 y sensibilidad a precisión; no se cargó DW ni se hicieron commits.
+
+### 2026-09-30 — Perfil KPI CDMX y sensibilidad espacial
+
+- Perfil ejecutado sobre las 2,431 AGEB comparables: 17 con población cero, 12 sin negocios, 77 empates de dominancia; reservados censales conservados.
+- 937 clases observadas validadas contra 1,084 clases extraídas del catálogo SCIAN 2018; cero códigos ajenos, sin comparación textual de descripciones.
+- Distancias a límites propios: seguridad candidata 25.99% dentro de 10 m y 54.11% dentro de 50 m. Radios ilustrativos, no errores observados; no se reasignaron puntos.
+- Contrato de los 14 indicadores actualizado en docs/kpis_cdmx.md; evidencia JSON portable y scripts reproducibles guardados. Doce pruebas aprobadas.
+- Pendiente: robustez de la escala, modelo/ETL y revisión textual SCIAN. No se cargó DW ni se realizaron commits.
+
+### 2026-09-30 — Simulaciones de desplazamiento
+
+- Ejecutadas 80 realizaciones: seguridad candidata y negocios, radios máximos 10/25/50/100 m, 10 semillas reproducibles. Distribución uniforme en disco, desplazamientos independientes; escenarios sintéticos, no error estimado.
+- Se incluyeron puntos válidos originalmente fuera para permitir entradas; inválidos no simulados. Radio cero coincide con asignaciones anteriores. Originales intactos.
+- Seguridad: cambios medios de asignación 6.91%, 12.50%, 17.89%, 25.53%. Con 50 m, unas 195 AGEB por repetición cambian conteo >=20% entre las de base >=20; orden global más estable no garantiza estabilidad local.
+- Evidencia: docs/simulaciones_cdmx.md y docs/cdmx_simulation_report.json; 80 filas de ejecución, 8 tablas por AGEB y gráfica en outputs/cdmx/phase1/simulations.
+- Catorce pruebas aprobadas. Pendiente DW/modelo/ETL y sensibilidad de KPIs finales; no se hicieron commits ni carga a PostGIS.
+
+### 2026-09-30 — Primer arranque Docker/PostGIS
+
+- Docker Desktop disponible (motor 29.8.1). Levantado servicio db con volumen persistente y puerto 127.0.0.1:5433.
+- Configuración .env creada con contraseña aleatoria, excluida de Git; no registrar su contenido en documentación.
+- Contenedor healthy; PostgreSQL 17.5 y PostGIS 3.5.2 verificados mediante SQL. Esquemas staging/dw/analytics presentes; consulta espacial correcta, autenticación TCP interna y puerto del host verificados.
+- Evidencia sin secretos e imagen identificada por digest: docs/docker_runtime_check.json.
+- Próximo paso: modelo dimensional y migraciones explícitas, luego carga reproducible. No hay hechos/dimensiones cargados; no se realizaron commits.
+
+### 2026-09-30 — Cierre operativo de Fase 1
+
+- Consolidado docs/cierre_fase1.md, rector del alcance y criterios de calidad. La precisión desconocida y sensibilidad pasan como restricciones explícitas a la siguiente fase.
+- Adoptados 2,431 AGEB y candidate-v1 para la carga inicial; no se alteraron retrospectivamente diagnósticos ni originales.
+- Incorporadas copias de evidencia geográfica/seguridad y restaurador de fuentes con verificación SHA-256 para reproducir desde un clon.
+- Publicado commit de cierre 690e2e2 en origin/codex/fase-1-recoleccion-validacion-cdmx. Originales, salidas y credenciales excluidos. Primera publicación del repositorio; no había rama remota main ni se realizó merge.
+- Siguiente: migraciones del modelo dimensional y ETL. No hay datos cargados en el DW.
+
+### 2026-10-03 — Fase 2: modelo, carga, validación y consumo
+
+- main creada exactamente desde 9f89a61 (cierre Fase 1) con autorización expresa. Cambios nuevos en codex/fase-2-modelo-etl-postgis, sin merge.
+- Implementadas migraciones, dimensiones, hechos, staging JSONB y calidad; carga original transaccional con COPY y asignación PostGIS. Primer intento falló por ejecución de múltiples sentencias y se revirtió por completo; corrección confirmada.
+- Dataset local 2: 2,431 AGEB, 474,328 negocios y 204,121 FGJ. 18 controles conciliados; selección espacial candidate-v1: 191,233. Paridad exacta de asignaciones/elegibilidad con Fase 1.
+- Repetición idempotente probada. Vistas de 14 KPIs publicadas con 11 controles y exportador de sólo lectura ejecutado.
+- 23 pruebas aprobadas (9 integración), base de pruebas urban_intelligence_test separada. Workflow CI preparado, resultado remoto pendiente.
+- Evidencia en docs/fase2_*.json, modelo en docs/fase2_modelo_etl.md; continuación autónoma en HANDOFF_FASE3.md. Texto listo para PR en docs/PR_FASE2.md.
+- Usuario prefiere crear el PR manualmente. Rama publicada: codex/fase-2-modelo-etl-postgis, commit de implementación 0b80ce3. main permanece en 9f89a61. PR aún no abierto. Pendiente revisión/merge, comprobar CI y reproducción en otro equipo, luego análisis final.
+
+### Plantilla para futuras entradas
+
+Copiar este formato con fecha real, sin marcar trabajo pendiente como realizado:
+
+- Fecha y tema:
+- Trabajo realizado / archivos cambiados:
+- Comprobaciones y resultados:
+- Decisiones o cambios de alcance:
+- Bloqueos y limitaciones:
+- Siguiente acción concreta:

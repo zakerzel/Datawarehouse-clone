@@ -1,73 +1,74 @@
-# Handoff — Fase 3
+# Continuación del proyecto: consumo del DW y Fase 3
 
-Este documento resume el estado validado del proyecto y el punto de arranque para Fase 3.
+Actualizado 2026-10-03. Implementación de Fase 2 lista para revisión. Cualquier herramienta o asistente puede continuar usando este archivo, el [modelo](docs/fase2_modelo_etl.md) y el [cierre de Fase 1](docs/cierre_fase1.md). No depender de la conversación para ejecutar.
 
-## Estado validado
+## Qué está listo
 
-- Fase 1 cerrada con CDMX como territorio operativo.
-- Fase 2 implementada y verificada con PostgreSQL/PostGIS.
-- Modelo dimensional en `sql/migrations/001_warehouse.sql`.
-- Carga reproducible en `sql/etl/load_cdmx.sql` y `src/load_warehouse.py`.
-- Vistas analíticas publicadas desde el DW en `sql/analytics/001_indicators.sql`.
-- Validación local reportada: 23 pruebas, 18 checks de warehouse y 11 checks analíticos.
+Modelo, migraciones, ETL de originales a staging/DW, conciliaciones, vistas de los 14 indicadores y exportador desde el DW. Fuentes: CDMX 2020, DENUE 11/2020, FGJ inicio 2020. PostGIS local conserva un dataset confirmado; identificador local actual 2, pero consultar siempre el de la propia instalación.
 
-## Alcance espacial
+## Desde un clon limpio
 
-- Unidad analítica: AGEB urbana.
-- Entidad: Ciudad de México, clave 09.
-- 2,431 polígonos válidos.
-- Dos AGEB censales sin polígono quedan excluidas del análisis espacial hasta revisión.
-- Regla actual de integración puntual: `intersects`; puntos ambiguos no se duplican.
+Requisitos: Python 3.12, Docker Desktop en ejecución, Git. Trabajar en la raíz DataHauseWare. Antes del merge, usar la rama codex/fase-2-modelo-etl-postgis; después, la rama que contenga ese PR.
 
-## Fuentes activas
+1. Crear entorno e instalar requirements.txt.
+2. Copiar .env.example a .env y sustituir el valor de POSTGRES_PASSWORD por una contraseña local. No subir .env; no reutilizar la contraseña de otra persona.
+3. Ejecutar estos comandos en PowerShell:
 
-- Censo de Población y Vivienda 2020.
-- Marco Geoestadístico 2020.
-- DENUE noviembre 2020.
-- FGJ: carpetas iniciadas en 2020. No interpretar como todos los hechos delictivos ocurridos en 2020.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+docker compose up -d --wait
+.\.venv\Scripts\python.exe src/restore_cdmx_sources.py
+.\.venv\Scripts\python.exe src/database.py
+.\.venv\Scripts\python.exe src/load_warehouse.py
+.\.venv\Scripts\python.exe src/publish_analytics.py
+.\.venv\Scripts\python.exe src/list_datasets.py
+```
 
-Ver `docs/cdmx_acquisition.json`, `docs/plan_b_cdmx.md` y `docs/cierre_fase1.md`.
+Si la descarga mutable ya no coincide con el SHA-256, detenerse y solicitar la copia archivada de esa edición. No cambiar el manifiesto sólo para hacer pasar la validación. El pipeline de Fase 2 no requiere regenerar las 80 simulaciones ni salidas de Fase 1.
 
-## Grain de hechos
+Elige el dataset mostrado por list_datasets.py. Sustituye 2 en este ejemplo si el tuyo tiene otro ID:
 
-- `fact_population`: una AGEB por dataset/edición censal.
-- `fact_business_snapshot`: un establecimiento DENUE por snapshot.
-- `fact_crime_record`: una fila publicada por FGJ por dataset.
+```powershell
+.\.venv\Scripts\python.exe src/validate_warehouse.py --dataset-id 2
+.\.venv\Scripts\python.exe src/validate_analytics.py --dataset-id 2
+.\.venv\Scripts\python.exe src/export_analysis.py --dataset-id 2
+```
 
-## Vistas analíticas
+Repetir load_warehouse.py debe terminar con idempotent_skip=true si código e insumos siguen idénticos. Si hay varios datasets, seleccionar uno por fingerprint/edición; no sumar todos. Los resultados exportados quedan en outputs/cdmx/phase3_inputs/ID/: kpi_ageb.csv, age_distribution.csv, crime_by_type_month.csv, areas.geojson y manifest.json. Se generaron mediante consultas al DW, no directamente desde originales.
 
-- `analytics.kpi_ageb`
-- `analytics.population_age_group`
-- `analytics.incidents_by_type_time`
+## Prueba de funcionamiento
 
-Los 14 KPIs requeridos se obtienen desde estas vistas. No consultar CSV/GeoDataFrames para métricas finales.
+- Validador DW: 18 controles aprobados; población 9,138,524; negocios asignados 472,608; seguridad seleccionada y asignada 191,233.
+- Validador analítico: 11 controles, incluida ausencia de multiplicación de conteos, NULL por ceros y 77 empates de dominancia.
+- Pruebas sin PostgreSQL: `python -m pytest tests -q` (14 pasan; integración se omite si no se configura base de prueba).
+- Integración: crear una base vacía dedicada llamada urban_intelligence_test y establecer `$env:DW_TEST_DATABASE='urban_intelligence_test'` antes de pytest; la cuenta debe poder migrarla. La suite no borra la base ni toca el DW principal. 23 pruebas pasaron localmente con esa configuración.
+- GitHub Actions levanta su propio servicio PostGIS de pruebas; no usa las fuentes voluminosas. Revisar su resultado por separado de las conciliaciones del dataset real.
 
-## Pendientes de Fase 3
+## Qué consultar
 
-1. Exploración de distribuciones y outliers de los KPIs.
-2. Selección justificada de al menos tres relaciones y Pearson/Spearman según supuestos.
-3. Construcción y documentación de pesos espaciales.
-4. Global Moran's I para mínimo dos indicadores.
-5. Local Moran's I / LISA para clusters y outliers espaciales.
-6. Bivariate Moran's I o alternativa espacial justificada.
-7. Mapas y figuras finales.
-8. Interpretación: asociación espacial no implica causalidad.
-9. Reporte técnico 4–6 páginas y presentación de máximo 5 pp.
+`analytics.kpi_ageb`: una fila por AGEB y dataset. Claves de unión: dataset_id + geography_id; cvegeo es código textual. `analytics.age_distribution`: ocho filas por AGEB, con NULL cuando el conteo no es conocido. `analytics.crime_by_type_month`: grupos observados de tipo/mes, fecha de apertura.
 
-## Reproducción resumida
+`dw.dim_geography`: polígonos 4326, área geodésica. Reproyectar para distancias, no usar grados como metros. `meta.quality_issue`: motivos de exclusión o calidad. `dw.dataset_source` + `dw.dim_source_release`: hashes y procedencia. Ejemplos SQL en sql/examples/analysis.sql; consultas siempre filtradas por dataset.
 
-1. Restaurar fuentes CDMX usando `src/restore_cdmx_sources.py` y verificar hashes.
-2. Configurar `.env` y levantar PostGIS con Docker Compose.
-3. Ejecutar migración/carga con `src/load_warehouse.py`.
-4. Publicar vistas con `src/publish_analytics.py`.
-5. Validar con `src/validate_warehouse.py` y `src/validate_analytics.py`.
-6. Exportar análisis desde el DW mediante `src/export_analysis.py`.
+No unir hechos crudos de población, negocios y FGJ entre sí. Usar las vistas o agregar cada uno antes de combinar. No convertir NULL en cero para hacer funcionar una correlación. Documentar número de observaciones tras cada exclusión.
 
-## Cautelas
+## Paquetes de continuación
 
-- No tratar ausencia de datos como cero.
-- No agregar filas de distinto grain antes de agregar cada hecho por AGEB.
-- No usar conteos FGJ sin conservar el significado temporal de “carpetas iniciadas en 2020”.
-- Definir explícitamente la vecindad espacial y revisar componentes aislados.
-- Si se usa normalización por población/área, documentar ceros y denominadores inválidos.
-- Reportar significancia con pruebas de permutación cuando corresponda.
+| Trabajo | Entrega verificable |
+|---|---|
+| Exploración y tres correlaciones requeridas | Script/notebook que consume DW o exportación documentada del DW; variables, exclusiones, gráficos e interpretación sin causalidad |
+| Pesos, dos Moran global, LISA y relación bivariada requerida | Vecindad justificada, CRS, tratamiento de islas, pruebas/permutaciones y mapas; semilla reproducible |
+| Visualización y reporte final | Figuras regenerables con leyendas, fuentes y periodos; reporte de 4–6 páginas conforme al enunciado |
+
+Cada aportación debe tener cambios reales, documentación breve y su commit. Para análisis nuevos crear una rama desde la base acordada y abrir PR. No fabricar atribuciones ni cambios para cumplir una cuota.
+
+## Decisiones que deben respetarse
+
+2,431 AGEB comparables, sin reemplazar las dos localidades excluidas por polígonos rurales. FGJ es cohorte de inicio 2020; no toda la delincuencia ni todos los hechos ocurridos en ese año. `_id` es identificador de fila, no prueba de incidente único. Candidate-v1 conserva competencia desconocida por su patrón temporal; no cambiar regla sin versionarla.
+
+La precisión espacial es desconocida; las simulaciones no la certifican. Repetir sensibilidad sobre tasas/focos inferenciales si se interpretan. La agrupación municipal debe conservar numeradores y denominadores del mismo universo urbano. No imputar coordenadas, celdas reservadas ni corregir ubicaciones por proximidad.
+
+## Punto de reanudación
+
+Primero revisar el PR y ejecutar la guía en el equipo que hará análisis. Después empezar por exploración y definición de vecindad. Si una comprobación falla, conservar su error y hashes; no cambiar fuentes o filtros para forzar los totales.
