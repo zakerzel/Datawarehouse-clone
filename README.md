@@ -117,3 +117,38 @@ La [decisión de usar AGEB](docs/decision_geografica.md) compara alternativas, d
 ## Servicio local en ejecución
 
 PostgreSQL/PostGIS iniciado y verificado el 2026-09-30. [Conexión y operación](docs/docker_operacion.md). Puerto localhost:5433; esquemas y carga del DW verificados; ver estado actualizado de Fase 2.
+
+
+## Fase 3 — Spatial Analytics
+
+La Fase 3 consume únicamente las vistas/exportaciones producidas por el Data Warehouse PostgreSQL/PostGIS.
+
+1. Consultar el dataset cargado:
+
+```powershell
+.\.venv\Scripts\python.exe src/list_datasets.py
+```
+
+2. Exportar insumos analíticos desde el DW:
+
+```powershell
+.\.venv\Scripts\python.exe src/export_analysis.py --dataset-id <ID>
+```
+
+3. Ejecutar el análisis completo:
+
+```powershell
+.\.venv\Scripts\python.exe src/phase3_run_all.py --dataset-id <ID> --permutations 999 --seed 42
+```
+
+Incluye:
+- mapas de distribución territorial;
+- al menos tres correlaciones con Pearson/Spearman según diagnóstico;
+- Global Moran's I para dos indicadores;
+- Local Moran / LISA;
+- Bivariate Moran's I;
+- auditoría de pesos Queen, islas, componentes, NULL y tamaño de muestra.
+
+Los resultados regenerables se escriben en `outputs/cdmx/phase3/<ID>/`. Las figuras seleccionadas para entrega se copian a `outputs/final/`.
+
+Documentación metodológica: `docs/fase3_ejecucion.md` y `docs/fase3_plan_equipo.md`.
